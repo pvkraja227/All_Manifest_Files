@@ -1,0 +1,92 @@
+Jenkins:
+
+pipeline {
+    agent any  // Run the pipeline on any available agent
+
+    environment {
+        SONAR_TOKEN = credentials('sonarqube-token')  // SonarQube credentials from Jenkins
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/your-repo.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    sh 'mvn clean package'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    sh 'mvn sonar:sonar -Dsonar.host.url=http://your-sonarqube-server -Dsonar.login=$SONAR_TOKEN'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    sh '''
+                    docker build -t your-docker-repo/app:latest .
+                    docker login -u $DOCKER_USER -p $DOCKER_PASS
+                    docker push your-docker-repo/app:latest
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    sh 'kubectl apply -f deployment.yaml'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline executed successfully!"
+        }
+        failure {
+            echo "Pipeline failed!"
+        }
+    }
+}
+
+‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑
+
+pipeline {
+  agent none
+  stages {
+    stage('Back-end') {
+      agent {
+        docker { image 'maven:3.8.1-adoptopenjdk-11' }
+      }
+      steps {
+        sh 'mvn --version'
+      }
+    }
+    stage('Front-end') {
+      agent {
+        docker { image 'node:16-alpine' }
+      }
+      steps {
+        sh 'node --version'
+      }
+    }
+  }
+}
