@@ -1,0 +1,66 @@
+Ansible:
+
+---
+- name: Install and start Nginx
+  hosts: webservers  # Target hosts (defined in inventory)
+  become: true       # Run as root (sudo)
+
+  tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install Nginx
+      package:
+        name: nginx
+        state: present
+
+    - name: Start and enable Nginx service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Open port 80 (firewall)
+      ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+
+
+---
+- name: Install and start nginx
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install nginx
+      shell: apt install nginx
+
+    - name: Start nginx
+      shell: systemctl start nginx  
+
+OR OR OR
+---
+- name: Install and start nginx
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Ensure nginx is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+
+ansible-playbook -i inventory playbook.yaml --syntax-check (syntax check)
+ansible-playbook -i inventory playbook.yaml --check (dry run mode)
+ansible-playbook -i inventory playbook.yaml
