@@ -1,0 +1,28 @@
+CIDR: classless Interdomain routing
+YAML: yet another markup language (html/xml)
+JSON: JavaScript Object Notation
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowSpecificIPReadOnly",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::my-bucket-name/*",
+      "Condition": {
+        "IpAddress": {
+          "aws:SourceIp": "203.0.113.0/24"
+        }
+      }
+    }
+  ]
+}
+
+s - sid - statement identifier - read only 
+p - principal - who all/user/entity/"*" - public access
+e - effect - allow/deny the action
+a - action - get object in s3/download
+r - resource - s3 / "*" everything in that bucket
+c - condition - extra filtering / from specific IP address
