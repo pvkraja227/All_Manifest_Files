@@ -1,0 +1,99 @@
+vi cm.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm
+data:
+  port: "3306"
+
+kubectl apply -f cm.yaml
+kubectl get cm
+kubectl describe cm test-cm
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+          env:
+            - name: DB_PORT  # Environment variable name must not contain dashes
+              valueFrom:
+                configMapKeyRef:
+                  name: test-cm
+                  key: port
+
+
+kubectl apply -f deploy.yaml
+kubectl get pods - 1
+kubectl exec -it <pod name> -- /bin/bash
+ -- - env | grep DB
+o/p: DB_PORT=3306
+
+*** if I change 3306 to 3307 in cm.yaml and apply
+
+kubectl exec -it <pod name> -- /bin/bash
+ -- - env | grep DB
+o/p: DB_PORT=3306
+
+*** container doesn't allow to change env variable ***
+in PROD we can't restart the container - traffic loss
+approach: use volumeMounts
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          volumeMounts:
+            - name: db-connect
+              mountPath: /opt
+          ports:
+            - containerPort: 80
+      volumes:  # 👈 Move this outside the container block
+        - name: db-connect
+          configMap:
+            name: test-cm
+
+
+kubevtl apply -f deploy.yaml
+kubectl exec -it <pod name> -- /bin/bash
+cd opt
+cat port
+o/p: 3306
+
+now, change cm-yml to 3307 and apply
+kubectl exec -it <pod name> -- /bin/bash
+cd opt
+cat port
+o/p: 3307
